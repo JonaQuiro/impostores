@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMPOSTORES</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #0d0d0d;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #ff3366;
+      margin-bottom: 10px;
+    }
+
+    #game {
+      display: none;
+      margin-top: 30px;
+    }
+
+    .player-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #444;
+      border-radius: 15px;
+      background-color: #1a1a1a;
+      width: 280px;
+      height: 180px;
+      margin: 0 auto;
+      box-shadow: 0 0 20px #ff3366aa;
+      padding: 20px;
+    }
+
+    .player-card h2 {
+      margin: 5px 0;
+    }
+
+    button {
+      background-color: #ff3366;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #ff6699;
+    }
+
+    input {
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #555;
+      margin: 5px;
+    }
+
+    #finalButtons {
+      display: none;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎭 El Juego del IMPOSTOR</h1>
+
+  <!-- ETAPA 1: Cantidad de jugadores -->
+  <div id="step1">
+    <p>¿Cuántos jugadores van a participar?</p>
+    <input id="cantidadInput" type="number" min="3" max="20" placeholder="Ej: 8">
+    <br><br>
+    <button onclick="setCantidad()">Continuar</button>
+  </div>
+
+  <!-- ETAPA 2: Ingreso de nombres -->
+  <div id="step2" style="display:none;">
+    <p id="nombreLabel">Jugador 1:</p>
+    <input id="nombreInput" type="text" placeholder="Escribí el nombre">
+    <br><br>
+    <button onclick="agregarNombre()">Agregar / Siguiente</button>
+  </div>
+
+  <!-- ETAPA 3: Juego -->
+  <div id="game">
+    <div id="playerContainer"></div>
+    <button id="revealButton" onclick="revealCard()">REVELAR 🔍</button>
+    <button id="nextButton" onclick="nextPlayer()" style="display:none;">Siguiente jugador ➡️</button>
+  </div>
+
+  <!-- ETAPA FINAL -->
+  <div id="endMessage" style="display:none;">
+    <h2>Todos vieron sus cartas 👀</h2>
+    <p>¡Empieza el juego! Descubran al impostor 😈</p>
+
+    <div id="finalButtons">
+      <button onclick="revelarFinal()">👀 Revelar personaje e impostor</button>
+      <button onclick="reSimular()">🔁 Volver a simular</button>
+      <button onclick="reiniciarTodo()">🔄 Volver al inicio</button>
+    </div>
+
+    <div id="revelacionFinal" style="margin-top:20px; display:none;"></div>
+  </div>
+
+  <!-- 📌 Incluir el JSON como JS -->
+  <script src="content/personajes.js"></script>
+
+  <script>
+    let cantidadJugadores = 0;
+    let jugadores = [];
+    let asignaciones = [];
+    let turno = 0;
+    let personajeBase = null;
+
+    function setCantidad() {
+      const n = parseInt(document.getElementById("cantidadInput").value);
+      if (!n || n < 3) return alert("Debe haber al menos 3 jugadores.");
+      cantidadJugadores = n;
+      jugadores = [];
+      document.getElementById("step1").style.display = "none";
+      document.getElementById("step2").style.display = "block";
+      document.getElementById("nombreLabel").textContent = "Jugador 1:";
+      document.getElementById("nombreInput").focus();
+    }
+
+    function agregarNombre() {
+      const input = document.getElementById("nombreInput");
+      const nombre = input.value.trim();
+      if (!nombre) return alert("Escribí un nombre.");
+      jugadores.push(nombre);
+      input.value = "";
+      input.focus();
+
+      if (jugadores.length < cantidadJugadores) {
+        document.getElementById("nombreLabel").textContent = `Jugador ${jugadores.length + 1}:`;
+      } else {
+        document.getElementById("step2").style.display = "none";
+        iniciarJuego();
+      }
+    }
+
+    function iniciarJuego() {
+      if (!personajes || personajes.length === 0) return alert("No hay personajes cargados.");
+      document.getElementById("game").style.display = "block";
+      asignaciones = [];
+      turno = 0;
+
+      personajeBase = personajes[Math.floor(Math.random() * personajes.length)];
+
+      let cantidadImpostores = 1;
+      if (jugadores.length > 5) {
+        cantidadImpostores = Math.random() < 0.4 ? 2 : 1;
+      }
+
+      let indicesImpostores = [];
+      while (indicesImpostores.length < cantidadImpostores) {
+        let idx = Math.floor(Math.random() * jugadores.length);
+        if (!indicesImpostores.includes(idx)) indicesImpostores.push(idx);
+      }
+
+      for (let i = 0; i < jugadores.length; i++) {
+        asignaciones.push({
+          jugador: jugadores[i],
+          personaje: indicesImpostores.includes(i) ? null : personajeBase,
+          esImpostor: indicesImpostores.includes(i)
+        });
+      }
+
+      asignaciones = asignaciones.sort(() => Math.random() - 0.5);
+
+      mostrarJugador();
+    }
+
+    function mostrarJugador() {
+      const data = asignaciones[turno];
+      const contenedor = document.getElementById("playerContainer");
+
+      contenedor.innerHTML = `
+        <div class="player-card">
+          <h2>${data.jugador}</h2>
+
+          <p id="nombrePersonaje" style="display:none;">
+            ${data.personaje ? data.personaje.nombre : ""}
+          </p>
+
+          <small id="mensajeImpostor" style="display:none; color:#ff3366;">
+            ${data.esImpostor ? "🤫 Sos el IMPOSTOR" : ""}
+          </small>
+
+          <small id="pistaImpostor" style="display:none; color:#999;">
+            ${data.esImpostor ? "(Pista: " + personajeBase.pista + ")" : ""}
+          </small>
+        </div>
+      `;
+
+      document.getElementById("revealButton").style.display = "inline-block";
+      document.getElementById("nextButton").style.display = "none";
+    }
+
+    function revealCard() {
+      const data = asignaciones[turno];
+
+      if (!data.esImpostor) {
+        document.getElementById("nombrePersonaje").style.display = "block";
+      }
+
+      document.getElementById("mensajeImpostor").style.display = "block";
+
+      if (data.esImpostor) {
+        document.getElementById("pistaImpostor").style.display = "block";
+      }
+
+      document.getElementById("revealButton").style.display = "none";
+      document.getElementById("nextButton").style.display = "inline-block";
+    }
+
+    function nextPlayer() {
+      turno++;
+      if (turno < jugadores.length) {
+        mostrarJugador();
+      } else {
+        document.getElementById("game").style.display = "none";
+        document.getElementById("endMessage").style.display = "block";
+        document.getElementById("finalButtons").style.display = "block";
+      }
+    }
+
+    function revelarFinal() {
+      const div = document.getElementById("revelacionFinal");
+      div.style.display = "block";
+
+      const impostores = asignaciones.filter(a => a.esImpostor);
+
+      let mensajeImpostor = impostores.length > 1
+        ? "Hay más de uno"
+        : impostores[0].jugador;
+
+      div.innerHTML = `
+        <h3>🎭 Personaje: ${personajeBase.nombre} (${personajeBase.categoria})</h3>
+        <p>😈 Impostor(es): <b>${mensajeImpostor}</b></p>
+      `;
+    }
+
+    function reSimular() {
+      document.getElementById("revelacionFinal").style.display = "none";
+      document.getElementById("revelacionFinal").innerHTML = "";
+      document.getElementById("endMessage").style.display = "none";
+      iniciarJuego();
+    }
+
+    function reiniciarTodo() {
+      document.getElementById("endMessage").style.display = "none";
+      document.getElementById("step1").style.display = "block";
+      document.getElementById("cantidadInput").value = "";
+      document.getElementById("revelacionFinal").style.display = "none";
+      document.getElementById("revelacionFinal").innerHTML = "";
+      document.getElementById("finalButtons").style.display = "none";
+      jugadores = [];
+    }
+  </script>
+</body>
+</html>
