@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IMPOSTORES</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d0d0d" />
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -103,7 +105,7 @@
   <!-- ETAPA FINAL -->
   <div id="endMessage" style="display:none;">
     <h2>Todos vieron sus cartas 👀</h2>
-    <p>¡Empieza el juego! Descubran al impostor 😈</p>
+    <p></p>
 
     <div id="finalButtons">
       <button onclick="revelarFinal()">👀 Revelar personaje e impostor</button>
@@ -114,7 +116,7 @@
     <div id="revelacionFinal" style="margin-top:20px; display:none;"></div>
   </div>
 
-  <!-- 📌 Incluir el JSON como JS -->
+  <!-- JSON de personajes -->
   <script src="content/personajes.js"></script>
 
   <script>
@@ -234,6 +236,13 @@
         document.getElementById("game").style.display = "none";
         document.getElementById("endMessage").style.display = "block";
         document.getElementById("finalButtons").style.display = "block";
+
+        const impostores = asignaciones.filter(a => a.esImpostor);
+        const mensaje = impostores.length === 1
+          ? "Hay un impostor entre nosotros"
+          : "Hay impostores entre nosotros";
+
+        document.querySelector("#endMessage p").textContent = mensaje + " 😈";
       }
     }
 
@@ -242,14 +251,11 @@
       div.style.display = "block";
 
       const impostores = asignaciones.filter(a => a.esImpostor);
-
-      let mensajeImpostor = impostores.length > 1
-        ? "Hay más de uno"
-        : impostores[0].jugador;
+      const lista = impostores.map(i => i.jugador).join(", ");
 
       div.innerHTML = `
         <h3>🎭 Personaje: ${personajeBase.nombre} (${personajeBase.categoria})</h3>
-        <p>😈 Impostor(es): <b>${mensajeImpostor}</b></p>
+        <p>😈 Impostor(es): <b>${lista}</b></p>
       `;
     }
 
@@ -270,5 +276,12 @@
       jugadores = [];
     }
   </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
+
 </body>
 </html>
+

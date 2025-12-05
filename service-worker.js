@@ -1,12 +1,14 @@
 // Cambiá la versión cuando quieras forzar actualización
-const CACHE = "impostores-v1";
+const CACHE = "impostores-v3";
 
 const FILES = [
   "./",
   "./index.html",
   "./content/personajes.js",
   "./manifest.json",
-  "./logo.png"
+  "./logo.png",
+  "./image/icon-192.png",
+  "./image/icon-512.png"
 ];
 
 // INSTALACIÓN
@@ -31,27 +33,23 @@ self.addEventListener("activate", event => {
   clients.claim();
 });
 
-// ESTRATEGIA:
-// - HTML → NETWORK FIRST (para que actualice diseño)
-// - JS, JSON, IMÁGENES → CACHE FIRST + actualización silenciosa
+// FETCH
 self.addEventListener("fetch", event => {
   if (event.request.mode === "navigate") {
-    // HTML siempre se trae fresco
     event.respondWith(
       fetch(event.request).catch(() => caches.match("./index.html"))
     );
     return;
   }
 
-  // cache first para assets
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request)
-        .then(networkResp => {
-          caches.open(CACHE).then(cache => {
-            cache.put(event.request, networkResp.clone());
+        .then(net => {
+          caches.open(CACHE).then(c => {
+            c.put(event.request, net.clone());
           });
-          return networkResp;
+          return net;
         })
         .catch(() => cached);
 
