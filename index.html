@@ -79,7 +79,7 @@
 
   <h1>🎭 El Juego del IMPOSTOR</h1>
 
-  <!-- ETAPA 1: Cantidad de jugadores -->
+  <!-- ETAPA 1 -->
   <div id="step1">
     <p>¿Cuántos jugadores van a participar?</p>
     <input id="cantidadInput" type="number" min="3" max="20" placeholder="Ej: 8">
@@ -87,7 +87,7 @@
     <button onclick="setCantidad()">Continuar</button>
   </div>
 
-  <!-- ETAPA 2: Ingreso de nombres -->
+  <!-- ETAPA 2 -->
   <div id="step2" style="display:none;">
     <p id="nombreLabel">Jugador 1:</p>
     <input id="nombreInput" type="text" placeholder="Escribí el nombre">
@@ -95,11 +95,23 @@
     <button onclick="agregarNombre()">Agregar / Siguiente</button>
   </div>
 
-  <!-- ETAPA 3: Juego -->
+  <!-- ETAPA 3 -->
   <div id="game">
     <div id="playerContainer"></div>
+
     <button id="revealButton" onclick="revealCard()">REVELAR 🔍</button>
-    <button id="nextButton" onclick="nextPlayer()" style="display:none;">Siguiente jugador ➡️</button>
+    <button id="nextButton" onclick="nextPlayer()" style="display:none;">
+      Siguiente jugador ➡️
+    </button>
+
+    <!-- botón chico -->
+    <div style="margin-top:20px;">
+      <button
+        style="font-size:12px; padding:6px 12px; background:#333;"
+        onclick="confirmarReinicio()">
+        Reiniciar partida
+      </button>
+    </div>
   </div>
 
   <!-- ETAPA FINAL -->
@@ -116,7 +128,7 @@
     <div id="revelacionFinal" style="margin-top:20px; display:none;"></div>
   </div>
 
-  <!-- JSON de personajes -->
+  <!-- PERSONAJES -->
   <script src="content/personajes.js"></script>
 
   <script>
@@ -125,6 +137,22 @@
     let asignaciones = [];
     let turno = 0;
     let personajeBase = null;
+
+    function obtenerPersonajeNoRepetido() {
+      let usados = JSON.parse(localStorage.getItem("personajesUsados") || "[]");
+      let disponibles = personajes.filter(p => !usados.includes(p.nombre));
+
+      if (disponibles.length === 0) {
+        usados = [];
+        disponibles = personajes;
+      }
+
+      const elegido = disponibles[Math.floor(Math.random() * disponibles.length)];
+      usados.push(elegido.nombre);
+      localStorage.setItem("personajesUsados", JSON.stringify(usados));
+
+      return elegido;
+    }
 
     function setCantidad() {
       const n = parseInt(document.getElementById("cantidadInput").value);
@@ -159,7 +187,7 @@
       asignaciones = [];
       turno = 0;
 
-      personajeBase = personajes[Math.floor(Math.random() * personajes.length)];
+      personajeBase = obtenerPersonajeNoRepetido();
 
       let cantidadImpostores = 1;
       if (jugadores.length > 5) {
@@ -181,7 +209,6 @@
       }
 
       asignaciones = asignaciones.sort(() => Math.random() - 0.5);
-
       mostrarJugador();
     }
 
@@ -202,7 +229,7 @@
           </small>
 
           <small id="pistaImpostor" style="display:none; color:#999;">
-            ${data.esImpostor ? "(Pista: " + personajeBase.pista + ")" : ""}
+            (Pista: ${personajeBase.pista})
           </small>
         </div>
       `;
@@ -220,9 +247,8 @@
 
       document.getElementById("mensajeImpostor").style.display = "block";
 
-      if (data.esImpostor) {
-        document.getElementById("pistaImpostor").style.display = "block";
-      }
+      // ahora la pista se muestra para todos
+      document.getElementById("pistaImpostor").style.display = "block";
 
       document.getElementById("revealButton").style.display = "none";
       document.getElementById("nextButton").style.display = "inline-block";
@@ -266,6 +292,12 @@
       iniciarJuego();
     }
 
+    function confirmarReinicio() {
+      if (confirm("¿Estás seguro que querés reiniciar la partida?")) {
+        reSimular();
+      }
+    }
+
     function reiniciarTodo() {
       document.getElementById("endMessage").style.display = "none";
       document.getElementById("step1").style.display = "block";
@@ -275,7 +307,29 @@
       document.getElementById("finalButtons").style.display = "none";
       jugadores = [];
     }
+
+    /* RESET OCULTO PARA CELULAR: long-press en el título */
+    let pressTimer = null;
+    const titulo = document.querySelector("h1");
+
+    titulo.addEventListener("touchstart", () => {
+      pressTimer = setTimeout(() => {
+        if (confirm("¿Resetear historial de personajes usados?")) {
+          localStorage.removeItem("personajesUsados");
+          alert("Historial reiniciado 👍");
+        }
+      }, 3000);
+    });
+
+    titulo.addEventListener("touchend", () => {
+      clearTimeout(pressTimer);
+    });
+
+    titulo.addEventListener("touchmove", () => {
+      clearTimeout(pressTimer);
+    });
   </script>
+
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js");
@@ -284,4 +338,3 @@
 
 </body>
 </html>
-
